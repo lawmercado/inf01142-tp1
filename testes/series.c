@@ -40,8 +40,6 @@ void* fibonnaci (void *i) {
          printf(" %d", fk);
      }
 
-     )
-
      printf("\n");
      return 0;
 }
@@ -56,7 +54,7 @@ int main(int argc, char **argv) {
     printf("Threads fatorial e Fibonnaci criadas...\n");
 
 	cjoin(id0);
-    printf("JOIN %d", cjoin(id1));
+    cjoin(id1);
 
 	printf("Main retornando para terminar o programa\n");
 
