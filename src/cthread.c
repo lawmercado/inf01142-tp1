@@ -80,43 +80,35 @@ Retorno:
 	Sem retorno
 ******************************************************************************/
 void mostrarEstado() {
+    int i = 0;
+
     printf("\n==== ESTADO ATUAL ====\n");
     printf("\n==== EM EXECUÇÃO ====\n");
     printf("PID %d; STATE %d; ASSOC %d\n", g_emExecucao->tid, g_emExecucao->state, g_emExecucao->joined_tid);
 
-    printf("\n==== FILA DE APTOS ====\n");
-
     TCB_t *conteudo = NULL;
 
-    if(FirstFila2(&g_filas[IDX_APTOS]) == 0)
+    for(i = 0; i < NUM_FILAS; i++)
     {
-        while(GetAtIteratorFila2(&g_filas[IDX_APTOS]) != NULL)
+        printf("\n==== FILA %d ====\n", i);
+
+        if(FirstFila2(&g_filas[i]) == 0)
         {
-            conteudo = (TCB_t *) GetAtIteratorFila2(&g_filas[IDX_APTOS]);
-            printf("PID %d; STATE %d; ASSOC %d\n", conteudo->tid, conteudo->state, conteudo->joined_tid);
+            while(GetAtIteratorFila2(&g_filas[i]) != NULL)
+            {
+                conteudo = (TCB_t *) GetAtIteratorFila2(&g_filas[i]);
+                printf("PID %d; STATE %d; ASSOC %d\n", conteudo->tid, conteudo->state, conteudo->joined_tid);
 
-            NextFila2(&g_filas[IDX_APTOS]);
+                NextFila2(&g_filas[i]);
 
+            }
         }
+
+        printf("\n==== FIM DA FILA %d ====\n", i);
+
+        printf("\n");
     }
 
-    printf("\n");
-
-    printf("\n==== FILA DE BLOQUEADOS ====\n");
-
-    if(FirstFila2(&g_filas[IDX_BLOQUEADOS]) == 0)
-    {
-        while(GetAtIteratorFila2(&g_filas[IDX_BLOQUEADOS]) != NULL)
-        {
-            conteudo = (TCB_t *) GetAtIteratorFila2(&g_filas[IDX_BLOQUEADOS]);
-            printf("PID %d; STATE %d; ASSOC %d\n", conteudo->tid, conteudo->state, conteudo->joined_tid);
-
-            NextFila2(&g_filas[IDX_BLOQUEADOS]);
-
-        }
-    }
-
-    printf("\n");
 }
 
 /******************************************************************************
@@ -178,6 +170,8 @@ int ccreate (void* (*start)(void*), void *arg, int prio)
         makecontext(&(t->context), (void (*) (void))start, 1, arg);
 
         AppendFila2(&g_filas[IDX_APTOS], (void *)t);
+
+        mostrarEstado();
 
         return tid;
     }
