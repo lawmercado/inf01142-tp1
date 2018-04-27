@@ -36,5 +36,6 @@ typedef struct s_TCB {
 
 } TCB_t;
 
+void mostrarEstado(void);
 
 #endif

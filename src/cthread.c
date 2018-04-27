@@ -43,7 +43,7 @@ Retorno:
 	Se correto => 0 (zero)
 	Se erro	   => Valor negativo.
 ******************************************************************************/
-int cinit ()
+int cinit (void)
 {
     int i = 0;
     TCB_t *tMain;
@@ -79,14 +79,13 @@ Parâmetros:
 Retorno:
 	Sem retorno
 ******************************************************************************/
-void mostrarEstado() {
+void mostrarEstado(void) {
     int i = 0;
+    TCB_t *conteudo = NULL;
 
     printf("\n==== ESTADO ATUAL ====\n");
     printf("\n==== EM EXECUÇÃO ====\n");
     printf("PID %d; STATE %d; ASSOC %d\n", g_emExecucao->tid, g_emExecucao->state, g_emExecucao->joined_tid);
-
-    TCB_t *conteudo = NULL;
 
     for(i = 0; i < NUM_FILAS; i++)
     {
@@ -171,8 +170,6 @@ int ccreate (void* (*start)(void*), void *arg, int prio)
 
         AppendFila2(&g_filas[IDX_APTOS], (void *)t);
 
-        mostrarEstado();
-
         return tid;
     }
 
@@ -188,7 +185,7 @@ Parâmetros:
 Retorno:
 	Sem retorno.
 ******************************************************************************/
-void __dispatch()
+void __dispatch(void)
 {
     TCB_t *candidata = NULL;
     TCB_t *yielded = g_emExecucao;
@@ -211,7 +208,7 @@ Parâmetros:
 Retorno:
 	Sem retorno.
 ******************************************************************************/
-void __setupContextoPosDispatch()
+void __setupContextoPosDispatch(void)
 {
     g_emExecucao = g_threadMain;
     g_emExecucao->state = PROCST_EXEC;
@@ -238,6 +235,74 @@ int cyield(void)
 }
 
 /******************************************************************************
+Encontra a fila em que a thread com dado tid está
+
+Parâmetros:
+	tid:	tid da thread a ser procurada
+Retorno:
+	Se correto índice da fila em que aa thread se encontra (algum valor IDX_*)
+    Se erro	   => Valor negativo.
+******************************************************************************/
+int __getFilaThread(int tid)
+{
+    int i = 0;
+    TCB_t *conteudo = NULL;
+
+    for(i = 0; i < NUM_FILAS; i++)
+    {
+        if(FirstFila2(&g_filas[i]) == 0)
+        {
+            while(GetAtIteratorFila2(&g_filas[i]) != NULL)
+            {
+                conteudo = (TCB_t *) GetAtIteratorFila2(&g_filas[i]);
+
+                if(conteudo->tid == tid)
+                {
+                    return i;
+                }
+
+                NextFila2(&g_filas[i]);
+
+            }
+        }
+    }
+
+    return -1;
+}
+
+/******************************************************************************
+Retorna as informações da thread pelo seu tid
+
+Parâmetros:
+	tid:	tid da thread a ser procurada
+    fila:   ponteiro da fila na qual encontrar a thread
+Retorno:
+	Se correto informação da thread
+    Se erro	   NULL, caso a thread não tenha sido encontrada
+******************************************************************************/
+TCB_t* __getThread(int tid, PFILA2 fila)
+{
+    TCB_t *conteudo = NULL;
+
+    if(FirstFila2(fila) == 0)
+    {
+        while(GetAtIteratorFila2(fila) != NULL)
+        {
+            conteudo = (TCB_t *) GetAtIteratorFila2(fila);
+
+            if(conteudo->tid == tid)
+            {
+                return conteudo;
+            }
+
+            NextFila2(fila);
+        }
+    }
+
+    return NULL;
+}
+
+/******************************************************************************
 Procura numa dada fila, o tid-a-ser-associado-com. Se encontrar, realiza a assoc.
 
 Parâmetros:
@@ -248,7 +313,7 @@ Retorno:
 	Se correto (encontrar tid-a-ser-associado-com) => 0 (zero)
 	Se erro	   => Valor negativo.
 ******************************************************************************/
-int __associarJoin(FILA2 *fila, int tid, int associarComTid)
+int __associarJoin(PFILA2 fila, int tid, int associarComTid)
 {
     TCB_t *conteudo = NULL;
 
@@ -285,14 +350,14 @@ Retorno:
 	Se correto (encontrar tid-a-ser-associado-com) => 0 (zero)
 	Se erro	   => Valor negativo.
 ******************************************************************************/
-int __removerDaFilPorTid(int tid, FILA2 *fila)
+int __removerThread(int tid, PFILA2 fila)
 {
-    int removed = -1;
+    int removed = 0;
     TCB_t *conteudo = NULL;
 
     if(FirstFila2(fila) == 0)
     {
-        while(GetAtIteratorFila2(fila) != NULL && removed == -1)
+        while(GetAtIteratorFila2(fila) != NULL && removed == 0)
         {
             conteudo = (TCB_t *) GetAtIteratorFila2(fila);
 
@@ -300,7 +365,7 @@ int __removerDaFilPorTid(int tid, FILA2 *fila)
             {
                 DeleteAtIteratorFila2(fila);
 
-                removed = 0;
+                removed = 1;
             }
 
             NextFila2(fila);
@@ -321,25 +386,34 @@ Retorno:
 ******************************************************************************/
 int cjoin(int tid)
 {
-    if(__associarJoin(&g_filas[IDX_APTOS], g_emExecucao->tid, tid) == 0)
+    int idxFila = __getFilaThread(tid);
+    int executed = 0;
+
+    // Não se pode dar um join em si mesmo
+    if(idxFila == IDX_APTOS || idxFila == IDX_BLOQUEADOS)
     {
-        g_emExecucao->state = PROCST_BLOQ;
+        if(__associarJoin(&g_filas[idxFila], g_emExecucao->tid, tid) == 0)
+        {
+            g_emExecucao->state = PROCST_BLOQ;
 
-        AppendFila2(&g_filas[IDX_BLOQUEADOS], (void *)g_emExecucao);
+            AppendFila2(&g_filas[IDX_BLOQUEADOS], (void *)g_emExecucao);
 
-        __dispatch();
+            while(executed == 0)
+            {
+                __dispatch();
 
-        __removerDaFilPorTid(g_emExecucao->joined_tid, &g_filas[IDX_BLOQUEADOS]);
+                AppendFila2(&g_filas[IDX_FINALIZADOS], (void *)g_emExecucao);
+                
+                executed = (g_emExecucao->tid == tid);
+            }
 
-        __setupContextoPosDispatch();
+            // Aqui g_emExecucao é a thread que foi solicitada o join
+            __removerThread(g_emExecucao->joined_tid, &g_filas[IDX_BLOQUEADOS]);
 
-        return 0;
-    }
-    else if(__associarJoin(&g_filas[IDX_BLOQUEADOS], g_emExecucao->tid, tid) == 0)
-    {
-        // TODO: Implementar caso de join numa thread bloqueada
+            __setupContextoPosDispatch();
 
-        return -1;
+            return 0;
+        }
     }
 
     return -1;
@@ -354,7 +428,30 @@ Retorno:
 ******************************************************************************/
 int csuspend(int tid)
 {
-    // Não implementado
+    int idxFila =__getFilaThread(tid);
+    PFILA2 fila = NULL;
+    PFILA2 filaDestino = NULL;
+    TCB_t *conteudo = NULL;
+
+    // A thread não pode se auto suspender
+    if(tid != g_emExecucao->tid)
+    {
+        if(idxFila == IDX_BLOQUEADOS || idxFila == IDX_APTOS)
+        {
+            fila = &g_filas[idxFila];
+            filaDestino = &g_filas[idxFila == IDX_BLOQUEADOS ? IDX_BLOQUEADOSSUSP : IDX_APTOSSUSP];
+
+            conteudo = __getThread(tid, fila);
+
+            AppendFila2(filaDestino, (void *)conteudo);
+
+            __removerThread(tid, fila);
+
+            return 0;
+        }
+
+    }
+
     return -1;
 }
 
@@ -367,7 +464,25 @@ Retorno:
 ******************************************************************************/
 int cresume(int tid)
 {
-    // Não implementado
+    int idxFila =__getFilaThread(tid);
+    PFILA2 fila = NULL;
+    PFILA2 filaDestino = NULL;
+    TCB_t *conteudo = NULL;
+
+    if(idxFila == IDX_BLOQUEADOSSUSP || idxFila == IDX_APTOSSUSP)
+    {
+        fila = &g_filas[idxFila];
+        filaDestino = &g_filas[idxFila == IDX_BLOQUEADOSSUSP ? IDX_BLOQUEADOS : IDX_APTOS];
+
+        conteudo = __getThread(tid, fila);
+
+        AppendFila2(filaDestino, (void *)conteudo);
+
+        __removerThread(tid, fila);
+
+        return 0;
+    }
+
     return -1;
 }
 
