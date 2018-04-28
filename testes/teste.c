@@ -5,9 +5,13 @@
 
 void* func0(void *arg)
 {
+    cwait((csem_t *)arg);
+
     printf("ID0: 1: Eu sou a thread ID0 imprimindo count do semáforo: %d\n", ((csem_t *)arg)->count);
 
     cyield();
+
+    csignal((csem_t *)arg);
 
     printf("ID0: 2: Eu sou a thread ID0 imprimindo count do semáforo: %d\n", ((csem_t *)arg)->count);
 
@@ -18,7 +22,7 @@ void* func1(void *arg)
 {
     printf("ID1: 1: Eu sou a thread ID1 imprimindo count do semáforo: %d\n", ((csem_t *)arg)->count);
 
-    cyield();
+    cwait((csem_t *)arg);
 
     printf("ID1: 2: Eu sou a thread ID1 imprimindo count do semáforo: %d\n", ((csem_t *)arg)->count);
 
@@ -29,7 +33,7 @@ void* func2(void *arg)
 {
     printf("ID2: 1: Eu sou a thread ID2 imprimindo count do semáforo: %d\n", ((csem_t *)arg)->count);
 
-    cyield();
+    cwait((csem_t *)arg);
 
     printf("ID2: 2: Eu sou a thread ID2 imprimindo count do semáforo: %d\n", ((csem_t *)arg)->count);
 
@@ -40,7 +44,6 @@ int main (int argc, char *argv[])
 {
     char name[200];
     int id0, id1, id2;
-    int valor0 = 1, valor1 = 2;
     csem_t semaforo1;
 
     if(csem_init(&semaforo1, 1) == 0)
@@ -50,11 +53,7 @@ int main (int argc, char *argv[])
         id2 = ccreate(func2, (void*)&semaforo1, 0);
 
         printf("MAIN: Eu sou a main após a criação de ID0, ID1\n");
-        cjoin(id0);
-        cjoin(id1);
         cjoin(id2);
-
-        mostrarEstado();
 
         printf("MAIN: Eu sou a main voltando para terminar o programa \n");
     }

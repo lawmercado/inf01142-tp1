@@ -246,20 +246,6 @@ TCB_t* __getThread(int tid, PFILA2 fila)
 }
 
 /******************************************************************************
-Ações a serem realizadas após a execução da thread indicada pelo dispatcher
-
-Parâmetros:
-    Sem parâmetros
-Retorno:
-    Sem retorno.
-******************************************************************************/
-void __setupContextoPosDispatch(void)
-{
-    g_emExecucao = g_threadMain;
-    g_emExecucao->state = PROCST_EXEC;
-}
-
-/******************************************************************************
 Dispatcher reponsável por pegar uma thread na fila de aptos e colocar a mesma
 para executá-la.
 
@@ -422,8 +408,6 @@ int cjoin(int tid)
                     AppendFila2(&g_filas[IDX_FINALIZADOS], (void *)g_emExecucao);
                 }
 
-                __setupContextoPosDispatch();
-
                 executando = (__getFilaThread(tAguardada->tid) != -1 && __getFilaThread(tAguardada->tid) != IDX_FINALIZADOS);
 
             } while(executando && despachado == 0);
@@ -551,8 +535,6 @@ int cwait(csem_t *sem)
         }
 
         __dispatch();
-
-        __setupContextoPosDispatch();
 
     }
     else
