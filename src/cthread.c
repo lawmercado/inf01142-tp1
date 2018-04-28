@@ -13,6 +13,8 @@
 #define IDX_BLOQUEADOSSUSP 3
 #define IDX_APTOSSUSP 4
 
+#define ID_MAIN 0
+
 /******************************************************************************
 Filas gerenciadas pela api, em cada índice uma fila, conforme definição 'IDX_*'.
 ******************************************************************************/
@@ -38,10 +40,10 @@ ucontext_t *g_contextMain;
 Função responsável por inicializar as varíaveis/filas utilizadas pela api
 
 Parâmetros:
-	Sem parâmetros
+    Sem parâmetros
 Retorno:
-	Se correto => 0 (zero)
-	Se erro	   => Valor negativo.
+    Se correto => 0 (zero)
+    Se erro	   => Valor negativo.
 ******************************************************************************/
 int cinit (void)
 {
@@ -59,8 +61,8 @@ int cinit (void)
 
     // Cria a entrada para a main e coloca a mesma como executando
     tMain = (TCB_t *) malloc(sizeof(TCB_t));
-    tMain->tid = 0;
-	tMain->state = PROCST_EXEC;
+    tMain->tid = ID_MAIN;
+    tMain->state = PROCST_EXEC;
     tMain->joined_tid = NO_JOINED_TID;
     getcontext(&(tMain->context));
 
@@ -75,9 +77,9 @@ int cinit (void)
 Função para visualizar o estado geral da implementação
 
 Parâmetros:
-	Sem parâmetros
+    Sem parâmetros
 Retorno:
-	Sem retorno
+    Sem retorno
 ******************************************************************************/
 void mostrarEstado(void) {
     int i = 0;
@@ -112,12 +114,12 @@ void mostrarEstado(void) {
 
 /******************************************************************************
 Parâmetros:
-	name:	ponteiro para uma área de memória onde deve ser escrito um string que contém os nomes dos componentes do grupo e seus números de cartão.
+    name:	ponteiro para uma área de memória onde deve ser escrito um string que contém os nomes dos componentes do grupo e seus números de cartão.
             Deve ser uma linha por componente.
-	size:	quantidade máxima de caracteres que podem ser copiados para o string de identificação dos componentes do grupo.
+    size:	quantidade máxima de caracteres que podem ser copiados para o string de identificação dos componentes do grupo.
 Retorno:
-	Se correto => 0 (zero)
-	Se erro	   => Valor negativo.
+    Se correto => 0 (zero)
+    Se erro	   => Valor negativo.
 ******************************************************************************/
 int cidentify (char *name, int size)
 {
@@ -128,12 +130,12 @@ int cidentify (char *name, int size)
 
 /******************************************************************************
 Parâmetros:
-	start:	ponteiro para a função que a thread executará.
-	arg:	um parâmetro que pode ser passado para a thread na sua criação.
-	prio:	NÃO utilizado neste semestre, deve ser sempre zero.
+    start:	ponteiro para a função que a thread executará.
+    arg:	um parâmetro que pode ser passado para a thread na sua criação.
+    prio:	NÃO utilizado neste semestre, deve ser sempre zero.
 Retorno:
-	Se correto => Valor positivo, que representa o identificador da thread criada
-	Se erro	   => Valor negativo.
+    Se correto => Valor positivo, que representa o identificador da thread criada
+    Se erro	   => Valor negativo.
 ******************************************************************************/
 int ccreate (void* (*start)(void*), void *arg, int prio)
 {
@@ -177,70 +179,12 @@ int ccreate (void* (*start)(void*), void *arg, int prio)
 }
 
 /******************************************************************************
-Dispatcher reponsável por pegar uma thread na fila de aptos e colocar a mesma
-para executá-la.
-
-Parâmetros:
-	Sem parâmetros
-Retorno:
-	Sem retorno.
-******************************************************************************/
-void __dispatch(void)
-{
-    TCB_t *candidata = NULL;
-    TCB_t *yielded = g_emExecucao;
-
-    // Pega a primeira thread da fila de aptos
-    FirstFila2(&g_filas[IDX_APTOS]);
-
-    candidata = (TCB_t *) GetAtIteratorFila2(&g_filas[IDX_APTOS]);
-    candidata->state = PROCST_EXEC;
-    g_emExecucao = candidata;
-    DeleteAtIteratorFila2(&g_filas[IDX_APTOS]);
-
-    swapcontext(&(yielded->context), &(candidata->context));
-}
-
-/******************************************************************************
-Ações a serem realizadas após a execução da thread indicada pelo dispatcher
-Parâmetros:
-	Sem parâmetros
-Retorno:
-	Sem retorno.
-******************************************************************************/
-void __setupContextoPosDispatch(void)
-{
-    g_emExecucao = g_threadMain;
-    g_emExecucao->state = PROCST_EXEC;
-}
-
-/******************************************************************************
-Parâmetros:
-	Sem parâmetros
-Retorno:
-	Se correto => 0 (zero)
-	Se erro	   => Valor negativo.
-******************************************************************************/
-int cyield(void)
-{
-    g_emExecucao->state = PROCST_APTO;
-
-    AppendFila2(&g_filas[IDX_APTOS], (void *)g_emExecucao);
-
-    __dispatch();
-
-    __setupContextoPosDispatch();
-
-    return 0;
-}
-
-/******************************************************************************
 Encontra a fila em que a thread com dado tid está
 
 Parâmetros:
-	tid:	tid da thread a ser procurada
+    tid:	tid da thread a ser procurada
 Retorno:
-	Se correto índice da fila em que aa thread se encontra (algum valor IDX_*)
+    Se correto índice da fila em que aa thread se encontra (algum valor IDX_*)
     Se erro	   => Valor negativo.
 ******************************************************************************/
 int __getFilaThread(int tid)
@@ -262,7 +206,6 @@ int __getFilaThread(int tid)
                 }
 
                 NextFila2(&g_filas[i]);
-
             }
         }
     }
@@ -274,10 +217,10 @@ int __getFilaThread(int tid)
 Retorna as informações da thread pelo seu tid
 
 Parâmetros:
-	tid:	tid da thread a ser procurada
+    tid:	tid da thread a ser procurada
     fila:   ponteiro da fila na qual encontrar a thread
 Retorno:
-	Se correto informação da thread
+    Se correto informação da thread
     Se erro	   NULL, caso a thread não tenha sido encontrada
 ******************************************************************************/
 TCB_t* __getThread(int tid, PFILA2 fila)
@@ -303,15 +246,83 @@ TCB_t* __getThread(int tid, PFILA2 fila)
 }
 
 /******************************************************************************
+Ações a serem realizadas após a execução da thread indicada pelo dispatcher
+
+Parâmetros:
+    Sem parâmetros
+Retorno:
+    Sem retorno.
+******************************************************************************/
+void __setupContextoPosDispatch(void)
+{
+    g_emExecucao = g_threadMain;
+    g_emExecucao->state = PROCST_EXEC;
+}
+
+/******************************************************************************
+Dispatcher reponsável por pegar uma thread na fila de aptos e colocar a mesma
+para executá-la.
+
+Parâmetros:
+    Sem parâmetros
+Retorno:
+    Se correto => 0 (zero), dispatch bem sucedido
+    Se erro	   => Valor negativo. Fila de aptos vazia.
+******************************************************************************/
+int __dispatch(void)
+{
+    TCB_t *candidata = NULL;
+    TCB_t *yielded = g_emExecucao;
+
+    // Pega a primeira thread da fila de aptos
+    if(FirstFila2(&g_filas[IDX_APTOS]) == 0)
+    {
+        candidata = (TCB_t *) GetAtIteratorFila2(&g_filas[IDX_APTOS]);
+        candidata->state = PROCST_EXEC;
+        g_emExecucao = candidata;
+        DeleteAtIteratorFila2(&g_filas[IDX_APTOS]);
+
+        swapcontext(&(yielded->context), &(candidata->context));
+
+        return 0;
+    }
+
+    return -1;
+}
+
+/******************************************************************************
+Parâmetros:
+    Sem parâmetros
+Retorno:
+    Se correto => 0 (zero)
+    Se erro	   => Valor negativo.
+******************************************************************************/
+int cyield(void)
+{
+    if(g_emExecucao->tid != ID_MAIN)
+    {
+        g_emExecucao->state = PROCST_APTO;
+
+        AppendFila2(&g_filas[IDX_APTOS], (void *)g_emExecucao);
+
+        __dispatch();
+
+        return 0;
+    }
+
+    return -1;
+}
+
+/******************************************************************************
 Procura numa dada fila, o tid-a-ser-associado-com. Se encontrar, realiza a assoc.
 
 Parâmetros:
-	fila:	ponteiro para a fila em que deve ser pesquisado o tid
-	tid:	tid da thread que solicitou o join
-    associarComTid: tid da thread a ser associada
+    fila:	ponteiro para a fila em que deve ser pesquisado o tid
+    tid:	tid da thread que solicitou o join
+associarComTid: tid da thread a ser associada
 Retorno:
-	Se correto (encontrar tid-a-ser-associado-com) => 0 (zero)
-	Se erro	   => Valor negativo.
+    Se correto (encontrar tid-a-ser-associado-com e conseguir associar) => 0
+    Se erro	   => Valor negativo.
 ******************************************************************************/
 int __associarJoin(PFILA2 fila, int tid, int associarComTid)
 {
@@ -347,17 +358,17 @@ Parâmetros:
     tid:	tid da thread a ser removida
     fila:	ponteiro para a fila em que deve ser removido a thread com o tid
 Retorno:
-	Se correto (encontrar tid-a-ser-associado-com) => 0 (zero)
-	Se erro	   => Valor negativo.
+    Se correto (encontrar tid-a-ser-associado-com e remover ele) => 0
+    Se erro	   => Valor negativo.
 ******************************************************************************/
 int __removerThread(int tid, PFILA2 fila)
 {
-    int removed = 0;
+    int removed = -1;
     TCB_t *conteudo = NULL;
 
     if(FirstFila2(fila) == 0)
     {
-        while(GetAtIteratorFila2(fila) != NULL && removed == 0)
+        while(GetAtIteratorFila2(fila) != NULL && removed == -1)
         {
             conteudo = (TCB_t *) GetAtIteratorFila2(fila);
 
@@ -365,13 +376,11 @@ int __removerThread(int tid, PFILA2 fila)
             {
                 DeleteAtIteratorFila2(fila);
 
-                removed = 1;
+                removed = 0;
             }
 
             NextFila2(fila);
-
         }
-
     }
 
     return removed;
@@ -379,38 +388,52 @@ int __removerThread(int tid, PFILA2 fila)
 
 /******************************************************************************
 Parâmetros:
-	tid:	identificador da thread cujo término está sendo aguardado.
+    tid:	identificador da thread cujo término está sendo aguardado.
 Retorno:
-	Se correto => 0 (zero)
-	Se erro	   => Valor negativo.
+    Se correto => 0 (zero)
+    Se erro	   => Valor negativo.
 ******************************************************************************/
 int cjoin(int tid)
 {
+    TCB_t *tEsperando, *tAguardada;
     int idxFila = __getFilaThread(tid);
-    int executed = 0;
+    int executando = 0, despachado = 0;
 
     // Não se pode dar um join em si mesmo
     if(idxFila == IDX_APTOS || idxFila == IDX_BLOQUEADOS)
     {
         if(__associarJoin(&g_filas[idxFila], g_emExecucao->tid, tid) == 0)
         {
-            g_emExecucao->state = PROCST_BLOQ;
+            tEsperando = g_emExecucao;
+            tAguardada = __getThread(tid, &g_filas[__getFilaThread(tid)]);
 
-            AppendFila2(&g_filas[IDX_BLOQUEADOS], (void *)g_emExecucao);
+            tEsperando->state = PROCST_BLOQ;
 
-            while(executed == 0)
+            AppendFila2(&g_filas[IDX_BLOQUEADOS], (void *)tEsperando);
+
+            do
             {
-                __dispatch();
+                despachado = __dispatch();
 
-                AppendFila2(&g_filas[IDX_FINALIZADOS], (void *)g_emExecucao);
-                
-                executed = (g_emExecucao->tid == tid);
+                if(__getFilaThread(g_emExecucao->tid) == -1)
+                {
+                    g_emExecucao->state = PROCST_TERMINO;
+
+                    AppendFila2(&g_filas[IDX_FINALIZADOS], (void *)g_emExecucao);
+                }
+
+                __setupContextoPosDispatch();
+
+                executando = (__getFilaThread(tAguardada->tid) != -1 && __getFilaThread(tAguardada->tid) != IDX_FINALIZADOS);
+
+            } while(executando && despachado == 0);
+
+            idxFila = __getFilaThread(tEsperando->tid);
+
+            if(idxFila == IDX_BLOQUEADOS || idxFila == IDX_BLOQUEADOSSUSP)
+            {
+                __removerThread(tEsperando->tid, &g_filas[idxFila]);
             }
-
-            // Aqui g_emExecucao é a thread que foi solicitada o join
-            __removerThread(g_emExecucao->joined_tid, &g_filas[IDX_BLOQUEADOS]);
-
-            __setupContextoPosDispatch();
 
             return 0;
         }
@@ -421,10 +444,10 @@ int cjoin(int tid)
 
 /******************************************************************************
 Parâmetros:
-	tid:	identificador da thread a ser suspensa.
+    tid:	identificador da thread a ser suspensa.
 Retorno:
-	Se correto => 0 (zero)
-	Se erro	   => Valor negativo.
+    Se correto => 0 (zero)
+    Se erro	   => Valor negativo.
 ******************************************************************************/
 int csuspend(int tid)
 {
@@ -449,7 +472,6 @@ int csuspend(int tid)
 
             return 0;
         }
-
     }
 
     return -1;
@@ -457,10 +479,10 @@ int csuspend(int tid)
 
 /******************************************************************************
 Parâmetros:
-	tid:	identificador da thread que terá sua execução retomada.
+    tid:	identificador da thread que terá sua execução retomada.
 Retorno:
-	Se correto => 0 (zero)
-	Se erro	   => Valor negativo.
+    Se correto => 0 (zero)
+    Se erro	   => Valor negativo.
 ******************************************************************************/
 int cresume(int tid)
 {
@@ -488,40 +510,90 @@ int cresume(int tid)
 
 /******************************************************************************
 Parâmetros:
-	sem:	ponteiro para uma variável do tipo csem_t. Aponta para uma estrutura de dados que representa a variável semáforo.
-	count: valor a ser usado na inicialização do semáforo. Representa a quantidade de recursos controlados pelo semáforo.
+    sem:	ponteiro para uma variável do tipo csem_t. Aponta para uma estrutura de dados que representa a variável semáforo.
+    count: valor a ser usado na inicialização do semáforo. Representa a quantidade de recursos controlados pelo semáforo.
 Retorno:
-	Se correto => 0 (zero)
-	Se erro	   => Valor negativo.
+    Se correto => 0 (zero)
+    Se erro	   => Valor negativo.
 ******************************************************************************/
 int csem_init(csem_t *sem, int count)
 {
-    // Não implementado
+    sem->fila = (PFILA2) malloc(sizeof(FILA2));
+
+    if(CreateFila2(sem->fila) == 0)
+    {
+        sem->count = count;
+
+        return 0;
+    }
+
     return -1;
 }
 
 /******************************************************************************
 Parâmetros:
-	sem:	ponteiro para uma variável do tipo semáforo.
+    sem:	ponteiro para uma variável do tipo semáforo.
 Retorno:
-	Se correto => 0 (zero)
-	Se erro	   => Valor negativo.
+    Se correto => 0 (zero)
+    Se erro	   => Valor negativo.
 ******************************************************************************/
 int cwait(csem_t *sem)
 {
-    // Não implementado
-    return -1;
+    // Recurso indisponível
+    if(sem->count <= 0)
+    {
+        g_emExecucao->state = PROCST_BLOQ;
+
+        if(AppendFila2(&g_filas[IDX_BLOQUEADOS], (void *)g_emExecucao) != 0
+            || AppendFila2(sem->fila, (void *)g_emExecucao) != 0)
+        {
+            return -1;
+        }
+
+        __dispatch();
+
+        __setupContextoPosDispatch();
+
+    }
+    else
+    {
+        sem->count--;
+    }
+
+    return 0;
 }
 
 /******************************************************************************
 Parâmetros:
-	sem:	ponteiro para uma variável do tipo semáforo.
+    sem:	ponteiro para uma variável do tipo semáforo.
 Retorno:
-	Se correto => 0 (zero)
-	Se erro	   => Valor negativo.
+    Se correto => 0 (zero)
+    Se erro	   => Valor negativo.
 ******************************************************************************/
 int csignal(csem_t *sem)
 {
-    // Não implementado
+    TCB_t *conteudo = NULL;
+    int idxFila = -1;
+
+    sem->count++;
+
+    if(FirstFila2(sem->fila) == 0)
+    {
+        conteudo = (TCB_t *) GetAtIteratorFila2(sem->fila);
+
+        idxFila = __getFilaThread(conteudo->tid);
+
+        if(idxFila == IDX_BLOQUEADOS || idxFila == IDX_BLOQUEADOSSUSP)
+        {
+            conteudo->state = idxFila == IDX_BLOQUEADOS ? PROCST_APTO : PROCST_APTO_SUS;
+
+            AppendFila2(&g_filas[idxFila == IDX_BLOQUEADOS ? IDX_APTOS : IDX_APTOSSUSP], (void *)conteudo);
+
+            __removerThread(conteudo->tid, &g_filas[idxFila]);
+
+            return 0;
+        }
+    }
+
     return -1;
 }
