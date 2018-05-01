@@ -79,45 +79,6 @@ int cinit (void)
 }
 
 /******************************************************************************
-Função para visualizar o estado geral da implementação
-
-Parâmetros:
-    Sem parâmetros
-Retorno:
-    Sem retorno
-******************************************************************************/
-void mostrarEstado(void) {
-    int i = 0;
-    TCB_t *conteudo = NULL;
-
-    printf("\n==== ESTADO ATUAL ====\n");
-    printf("\n==== EM EXECUÇÃO ====\n");
-    printf("PID %d; STATE %d; ASSOC %d\n", g_emExecucao->tid, g_emExecucao->state, g_emExecucao->joined_tid);
-
-    for(i = 0; i < NUM_FILAS; i++)
-    {
-        printf("\n==== FILA %d ====\n", i);
-
-        if(FirstFila2(&g_filas[i]) == 0)
-        {
-            while(GetAtIteratorFila2(&g_filas[i]) != NULL)
-            {
-                conteudo = (TCB_t *) GetAtIteratorFila2(&g_filas[i]);
-                printf("PID %d; STATE %d; ASSOC %d\n", conteudo->tid, conteudo->state, conteudo->joined_tid);
-
-                NextFila2(&g_filas[i]);
-
-            }
-        }
-
-        printf("\n==== FIM DA FILA %d ====\n", i);
-
-        printf("\n");
-    }
-
-}
-
-/******************************************************************************
 Parâmetros:
     name:	ponteiro para uma área de memória onde deve ser escrito um string que contém os nomes dos componentes do grupo e seus números de cartão.
             Deve ser uma linha por componente.
@@ -568,6 +529,8 @@ int cwait(csem_t *sem)
             return -1;
         }
 
+        sem->count--;
+
         __dispatch();
 
     }
@@ -611,6 +574,7 @@ int csignal(csem_t *sem)
             AppendFila2(&g_filas[idxFila == IDX_BLOQUEADOS ? IDX_APTOS : IDX_APTOSSUSP], (void *)conteudo);
 
             __removerThread(conteudo->tid, &g_filas[idxFila]);
+            __removerThread(conteudo->tid, sem->fila);
 
             return 0;
         }
