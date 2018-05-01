@@ -37,6 +37,11 @@ Contexto da thread main, para onde todas as demais threads voltam.
 ucontext_t *g_contextMain;
 
 /******************************************************************************
+Flag para o controle da inicialização da biblioteca
+******************************************************************************/
+int g_inicializada = 0;
+
+/******************************************************************************
 Função responsável por inicializar as varíaveis/filas utilizadas pela api
 
 Parâmetros:
@@ -144,14 +149,18 @@ int ccreate (void* (*start)(void*), void *arg, int prio)
     TCB_t *t = NULL;
 
     // Se fila de aptos estiver vazia
-    if( LastFila2(&g_filas[IDX_APTOS]) != 0 )
+    if( g_inicializada == 0 && LastFila2(&g_filas[IDX_APTOS]) != 0 )
     {
         status = cinit();
 
         if(status == -1)
         {
+            g_inicializada = 0;
+
             return -1;
         }
+
+        g_inicializada = 1;
     }
 
     tid = Random2();
@@ -285,6 +294,11 @@ Retorno:
 ******************************************************************************/
 int cyield(void)
 {
+    if(!g_inicializada)
+    {
+        return -1;
+    }
+
     if(g_emExecucao->tid != ID_MAIN)
     {
         g_emExecucao->state = PROCST_APTO;
@@ -381,6 +395,11 @@ Retorno:
 ******************************************************************************/
 int cjoin(int tid)
 {
+    if(!g_inicializada)
+    {
+        return -1;
+    }
+
     TCB_t *tEsperando, *tAguardada;
     int idxFila = __getFilaThread(tid);
     int executando = 0, despachado = 0;
@@ -435,6 +454,11 @@ Retorno:
 ******************************************************************************/
 int csuspend(int tid)
 {
+    if(!g_inicializada)
+    {
+        return -1;
+    }
+
     int idxFila =__getFilaThread(tid);
     PFILA2 fila = NULL;
     PFILA2 filaDestino = NULL;
@@ -470,6 +494,11 @@ Retorno:
 ******************************************************************************/
 int cresume(int tid)
 {
+    if(!g_inicializada)
+    {
+        return -1;
+    }
+
     int idxFila =__getFilaThread(tid);
     PFILA2 fila = NULL;
     PFILA2 filaDestino = NULL;
@@ -523,6 +552,11 @@ Retorno:
 ******************************************************************************/
 int cwait(csem_t *sem)
 {
+    if(!g_inicializada)
+    {
+        return -1;
+    }
+
     // Recurso indisponível
     if(sem->count <= 0)
     {
@@ -554,6 +588,11 @@ Retorno:
 ******************************************************************************/
 int csignal(csem_t *sem)
 {
+    if(!g_inicializada)
+    {
+        return -1;
+    }
+
     TCB_t *conteudo = NULL;
     int idxFila = -1;
 

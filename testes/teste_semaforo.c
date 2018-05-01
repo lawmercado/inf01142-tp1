@@ -42,7 +42,6 @@ void* func2(void *arg)
 
 int main (int argc, char *argv[])
 {
-    char name[200];
     int id0, id1, id2;
     csem_t semaforo1;
 
