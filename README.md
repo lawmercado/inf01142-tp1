@@ -1,2 +1,2 @@
-# inf01142-tp1
+# ufrgs-inf01142-cthread
 Implementation of the libcthread: an user-level thread manager
